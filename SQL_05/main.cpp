@@ -23,6 +23,9 @@ int main()
         return 0;
     }
     
+    // 0. Очистка БД
+    dbm.clear_db();
+    
     // 1. Создание структуры БД (таблицы).
     log_event("\nTrying to create database...");
     dbm.create_db();
@@ -31,23 +34,23 @@ int main()
     log_event("\nTrying to add clients from file \"good_clients_batch.csv\"...");
     try
     {
-        add_clients_batch(dbm, "../SQL_05/good_clients_batch.csv");
-    }
-    catch (const std::exception &ex)
-    {
-        std::cout << ex.what() << std::endl;
-    }
-    /*
-    log_event("\nTrying to add clients from file \"wrong_clients_batch.csv\"...");
-    try
-    {
-        add_clients_batch(dbm, "../SQL_05/wrong_clients_batch.csv");
+        add_clients_batch(dbm, "../SQL_05/input_data/good_clients_batch.csv");
     }
     catch (const std::exception &ex)
     {
         std::cout << ex.what() << std::endl;
     }
     
+    log_event("\nTrying to add clients from file \"wrong_clients_batch.csv\"...");
+    try
+    {
+        add_clients_batch(dbm, "../SQL_05/input_data/wrong_clients_batch.csv");
+    }
+    catch (const std::exception &ex)
+    {
+        std::cout << ex.what() << std::endl;
+    }
+    /*
     // 3. Добавление телефона для существующего клиента.
     log_event("\nTrying to add phone number '79440005000' belonging to client with email \"galinaserova@yashchik.ru\"...");
     try

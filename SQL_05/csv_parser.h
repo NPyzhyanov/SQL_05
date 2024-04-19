@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <optional>
 #include <memory>
 #include <functional>
 #include <stdexcept>
@@ -74,7 +75,7 @@ public:
     
     bool eof() { return p_file->eof(); }
     
-    std::map<EssenceEnumType, std::string> read_line()
+    std::optional<std::map<EssenceEnumType, std::string>> read_line()
     {
         if (!is_valid())
         {
@@ -83,12 +84,16 @@ public:
         
         if (p_file->eof())
         {
-            runtime_error_log += "| end of file! |";
-            test_errors();
+            return {};
         }
         
         std::string line = "";
         *p_file >> line;
+        
+        if (line.empty())
+        {
+            return {};
+        }
         
         columns_headers_iterator = columns_headers.begin();
         

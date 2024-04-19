@@ -15,7 +15,8 @@ public:
     void setup_connection(); // described in setup_connection.cpp
     bool check_connection() { return connection_set_up; }
     
-    void create_db();
+    void create_db();    
+    void clear_db();
     void add_client(clients_package &clients_to_add);
     void add_phone_number(std::string email, unsigned long long phone_number);
     void modify_client(std::string email, attribute::attribute attribute_to_change, std::string new_value);
@@ -33,6 +34,20 @@ private:
     
     std::string build_connection_argument(std::string password);
     bool check_number(const unsigned long long &number);
+    
+    class name_changer
+    {
+    public:
+        unsigned long long operator()()
+        {
+            return ++counter;
+        }
+        
+    private:
+        unsigned long long counter = 0;
+    };
+    
+    name_changer cntr;
 };
 
 #endif // DB_MANAGER_H

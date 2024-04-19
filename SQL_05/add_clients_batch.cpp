@@ -45,10 +45,14 @@ void add_clients_batch(db_manager& dbm, std::string filename)
         line_number++;
         
         std::map<attribute::attribute, std::string> current_line;
-        current_line = parser.read_line();
+        std::optional<std::map<attribute::attribute, std::string>> opt = parser.read_line();
+        if (opt.has_value())
+        {
+            current_line = opt.value();/*
+        }
         
         if (!current_line.empty())
-        {
+        {*/
             std::string first_name = "";
             std::string last_name = "";
             std::string email = "";
@@ -75,9 +79,9 @@ void add_clients_batch(db_manager& dbm, std::string filename)
                     
                     bool wrong_ph_number = false;
                     try
-                {
-                    phone_number = std::stoull(it->second);
-                }
+                    {
+                        phone_number = std::stoull(it->second);
+                    }
                     catch (const std::exception& bad_cast)
                     {
                         wrong_ph_number = true;
@@ -96,9 +100,9 @@ void add_clients_batch(db_manager& dbm, std::string filename)
     }
     
     clients_package bad_input;
-    auto it_client = (pkg.package).begin();
     int break_cntr = 0; // TEMPORARY FEATURE!
-    while (it_client != pkg.package.end())
+    bool added = false;
+    while (!added)
     {
         break_cntr++; // TEMPORARY FEATURE!
         if (break_cntr >= 50) // TEMPORARY FEATURE!
@@ -109,12 +113,13 @@ void add_clients_batch(db_manager& dbm, std::string filename)
         try
         {
             dbm.add_client(pkg);
-            it_client++;
+            added = true;
         }
         catch (const insert_exception_structure& ies)
         {
             log_event(ies.what);
-            (bad_input.package).push_back(std::move(*(ies.where)));
+            (bad_input.package).push_back(*(ies.where));
+            (pkg.package).erase((pkg.package).begin(), ies.where + 1);
         }
         catch (const std::exception &other_ex)
         {

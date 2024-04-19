@@ -55,6 +55,22 @@ void db_manager::create_db()
     }
 }
 
+void db_manager::clear_db()
+{
+    {
+        pqxx::work transaction{ *p_connection };
+        transaction.exec("DROP TABLE PhoneNumber;");
+        transaction.commit();
+        log_event("Table 'PhoneNumber' deleted");
+    }
+    {
+        pqxx::work transaction{ *p_connection };
+        transaction.exec("DROP TABLE Client;");
+        transaction.commit();
+        log_event("Table 'Client' deleted");
+    }
+}
+
 void db_manager::add_client(clients_package &clients_to_add)
 {
     for (auto it = clients_to_add.package.begin(); it != clients_to_add.package.end(); it++)
@@ -66,11 +82,12 @@ void db_manager::add_client(clients_package &clients_to_add)
         
         try
         {
-            p_connection->prepare("insert_Client", 
+            std::string prepare_arg = "insert_Client(" + std::to_string(cntr()) + ")";
+            p_connection->prepare(prepare_arg, 
                                   "INSERT INTO Client(first_name, last_name, email) "
                                   "VALUES ($1, $2, $3) ON CONFLICT (email) DO NOTHING");
             pqxx::work cl_transaction{ *p_connection };
-            cl_transaction.exec_prepared("insert_Client", first_name, last_name, email);
+            cl_transaction.exec_prepared(prepare_arg, first_name, last_name, email);
             cl_transaction.commit();
             log_event("Client " + first_name + " " + last_name + " with email " + email + " added");
         }
@@ -108,11 +125,12 @@ void db_manager::add_phone_number(std::string email, unsigned long long phone_nu
         throw empty_value_exception("Empty phone number");
     }
     
-    p_connection->prepare("insert_PhoneNumber", 
+    std::string prepare_arg = "insert_PhoneNumber(" + std::to_string(cntr()) + ")";
+    p_connection->prepare(prepare_arg, 
                           "INSERT INTO PhoneNumber(ph_number, email) "
-                          "VALUES ($1, $2) ON CONFLICT (email) DO NOTHING");
+                          "VALUES ($1, $2) ON CONFLICT (ph_number) DO NOTHING");
     pqxx::work ph_transaction{ *p_connection };
-    ph_transaction.exec_prepared("insert_PhoneNumber", phone_number, email);
+    ph_transaction.exec_prepared(prepare_arg, phone_number, email);
     ph_transaction.commit();
     log_event("Phone number " + std::to_string(phone_number) + " belonging to client with email " + email + " added");
 }
@@ -148,9 +166,10 @@ void db_manager::modify_client(std::string email_before_changing, attribute::att
     update_query += email_before_changing;
     update_query += "';";
     
-    p_connection->prepare("update_Сlient", update_query);
+    std::string prepare_arg = "update_Сlient(" + std::to_string(cntr()) + ")";
+    p_connection->prepare(prepare_arg, update_query);
     pqxx::work transaction{ *p_connection };
-    transaction.exec_prepared("update_Сlient", new_value);
+    transaction.exec_prepared(prepare_arg, new_value);
     transaction.commit();
     log_event("Client with email " + email_before_changing + " updated: new " + updated_attribute + " = '" + new_value + "'");
 }
@@ -159,9 +178,10 @@ void db_manager::delete_phone_number(unsigned long long phone_number)
 {
     std::string delete_query = "DELETE FROM PhoneNumber "
                                "WHERE ph_number = ($1);";
-    p_connection->prepare("delete_PhoneNumber", delete_query);
+    std::string prepare_arg = "delete_PhoneNumber(" + std::to_string(cntr()) + ")";
+    p_connection->prepare(prepare_arg, delete_query);
     pqxx::work transaction{ *p_connection };
-    transaction.exec_prepared("delete_PhoneNumber", std::to_string(phone_number));
+    transaction.exec_prepared(prepare_arg, std::to_string(phone_number));
     transaction.commit();
     log_event("Phone number " + std::to_string(phone_number) + " deleted");
 }
@@ -177,16 +197,17 @@ void db_manager::delete_client(std::string email)
     
     std::string delete_query = "DELETE FROM Client "
                                "WHERE email = ($1);";
-    p_connection->prepare("delete_Client", delete_query);
+    std::string prepare_arg = "delete_Client(" + std::to_string(cntr()) + ")";
+    p_connection->prepare(prepare_arg, delete_query);
     pqxx::work transaction{ *p_connection };
-    transaction.exec_prepared("delete_Client", email);
+    transaction.exec_prepared(prepare_arg, email);
     transaction.commit();
     log_event("Client with email " + email + " deleted");
 }
 
 clients_package db_manager::find_client(attribute::attribute search_criterion, std::string value)
 {
-    std::string query = "SELECT Client.first_name, Client.last_name, Client.email, PhoneNumber.phone_number "
+    std::string query = "SELECT Client.first_name, Client.last_name, Client.email, PhoneNumber.ph_number "
                         "FROM Client "
                         "LEFT JOIN PhoneNumber ON Client.email = PhoneNumber.email ";
     std::string where_statement = "WHERE ";
@@ -206,7 +227,7 @@ clients_package db_manager::find_client(attribute::attribute search_criterion, s
         str_attribute = "email";
         break;
     case attribute::phone_number:
-        where_statement += "PhoneNumber.phone_number = '";
+        where_statement += "PhoneNumber.ph_number = '";
         str_attribute = "phone number";
         break;
     }
